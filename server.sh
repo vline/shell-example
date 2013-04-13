@@ -1,8 +1,17 @@
 #!/bin/bash
 
-HTTPD=/usr/sbin/httpd
+HTTPD=$(which httpd)
 MODULE_DIR=libexec/apache2
 PORT=4567
+
+if [ "x$HTTP" = "x" ]; then
+  if [ -x '/usr/sbin/httpd' ]; then
+    HTTPD=/usr/sbin/httpd
+  else
+    echo "Could not find Apache. Do you have it installed?"
+    exit
+  fi
+fi
 
 # find project dir
 SOURCE="${BASH_SOURCE[0]}"
@@ -48,4 +57,5 @@ LoadModule mime_module $MODULE_DIR/mod_mime.so
 EOF
 
 # run apache
+echo 'Starting server at http://localhost:$PORT ...';echo
 $HTTPD -f $CONF -DNO_DETACH -DFOREGROUND

@@ -16,13 +16,10 @@
  * limitations under the License.
  * ========================================================== */
 
-function vlineShell(appId, elem) {
+function vlineShell(serviceId, elem) {
   var $client, $session;
 
-  $client = vline.Client.create({
-    appId: appId
-    ,env: 'dev'
-  });
+  $client = vline.Client.create(serviceId);
 
   // if we have a saved session, use it
   if ($client.isLoggedIn()) {
@@ -38,8 +35,8 @@ function vlineShell(appId, elem) {
       this.error('Already logged in');
       return;
     }
-    // default to github identityProvider
-    var providerId = opt_identityProviderId || 'github'
+    // use service's configured identity provider if none is provided
+    var providerId = opt_identityProviderId || serviceId
     return $client.login(providerId).
         done(function(session) {
           $session = session;
@@ -62,37 +59,19 @@ function vlineShell(appId, elem) {
   }
 
   function writeCmd(userId, msg) {
-    return $session.getPerson(userId).
-        done(function(person) {
-          person.autorelease();
-          return person.postMessage(msg);
-        }, this);
+    return $session.postMessage(userId, msg);
   }
 
   function startMediaCmd(userId) {
-    return $session.getPerson(userId).
-        done(function(person) {
-          person.autorelease();
-          var mediaSession = person.startMedia();
-          addMediaSession_(mediaSession);
-        }, this);
+    return $session.startMedia(userId).
+        done(addMediaSession_);
   }
 
   function stopMediaCmd(opt_userId) {
     if (opt_userId) {
-      return $session.getPerson(userId).
-          done(function(person) {
-            person.autorelease();
-            var mediaSession = person.getMediaSession();
-            if (mediaSession) {
-              mediaSession.stop();
-            }
-          }, this);
+      return $session.stopMedia(userId);
     } else {
-      var mediaSession = $client.getActiveMediaSession();
-      if (mediaSession) {
-        mediaSession.stop();
-      }
+      $client.stopMediaSessions();
     }
   }
 
@@ -108,8 +87,8 @@ function vlineShell(appId, elem) {
         this.echo('    ' + options.help);
       }
     } else {
-      this.echo(formatUsageMessage_('help')).
-          echo('\nCommands:');
+      this.echo(formatUsageMessage_('help'));
+      this.echo('\nCommands:');
       for (var cmd in commands) {
         this.echo(' ' + cmd);
       }
@@ -156,7 +135,7 @@ function vlineShell(appId, elem) {
       $('#video-wrapper').append(elem);
     });
     // add event handler for remove stream events
-    mediaSession.on('mediaSession.removeLocalStream mediaSession:removeRemoteStream', function(event) {
+    mediaSession.on('mediaSession:removeLocalStream mediaSession:removeRemoteStream', function(event) {
       $('#' + event.stream.getId()).remove();
     });
   }
@@ -205,7 +184,7 @@ function vlineShell(appId, elem) {
     return usageMsg;
   }
 
-  function formatGreeting_(callback) {
+  function formatGreeting_() {
     var greeting =
         ("=====================================================\n"   +
             "         _     _              ____  _          _ _   \n"   +

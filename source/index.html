@@ -2,13 +2,14 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="Description" content="vline - Cloud Infrastructure for WebRTC">
+  <meta name="Description" content="vLine Shell Example">
   <!-- Always force latest IE rendering engine or request Chrome Frame -->
   <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
 
   <title>vLine Shell Example</title>
 
-  <script src="http://localhost:9801/vline.js"></script>
+  <!--<script src="http://localhost:9801/vline.js"></script>-->
+  <script src="https://static.dev.vline.com/vline.js"></script>
   <script src="lib/jquery-1.7.1.min.js"></script>
   <script src="lib/jquery.mousewheel-3.1.3.min.js"></script>
   <script src="lib/jquery.terminal-0.6.2.min.js"></script>
@@ -22,7 +23,7 @@
   <div id="video-wrapper"></div>
   <script>
     // see vline-shell.js for implementation
-    vlineShell('gittogether-localhost', $('#term-wrapper'));
+    vlineShell('YOUR_SERVICE_ID', $('#term-wrapper'));
   </script>
 </body>
 </html>
