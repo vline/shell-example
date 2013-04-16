@@ -1,19 +1,57 @@
 #!/bin/bash
 
+#
+# Default config values
+#
 HTTPD=$(which httpd)
+if [ "x$HTTP" = "x" ]; then
+  HTTPD=/usr/sbin/httpd
+fi
+
 MODULE_DIR=libexec/apache2
 PORT=4567
 
-if [ "x$HTTP" = "x" ]; then
-  if [ -x '/usr/sbin/httpd' ]; then
-    HTTPD=/usr/sbin/httpd
-  else
-    echo "Could not find Apache. Do you have it installed?"
-    exit
-  fi
+#
+# Print usage
+#
+function usage() {
+  echo "usage: server.sh [-h] [-p PORT] [-e HTTPD_EXECUTABLE] [-m APACHE_MODULE_DIR]"
+}
+
+#
+# Parse args
+#
+while getopts ":e:p:m:h" opt; do
+  case $opt in
+    e)
+      HTTPD=$OPTARG
+      ;;
+    p)
+      PORT=$OPTARG
+      ;;
+    m)
+      MODULE_DIR=$OPTARG
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+if [ ! -x "$HTTPD" ]; then
+  echo "Could not find Apache. Do you have it installed?" >&2
+  exit 2
 fi
 
-# find project dir
+#
+# Find project dir
+#
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
   DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
@@ -25,7 +63,9 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 CONF=$DIR/server/httpd.conf
 ROOT=$DIR/source
 
-# create conf file
+#
+# Create conf file
+#
 mkdir -p server
 cat > $CONF <<EOF
 Listen 127.0.0.1:$PORT
@@ -56,6 +96,8 @@ LoadModule mime_module $MODULE_DIR/mod_mime.so
 </IfModule>
 EOF
 
-# run apache
-echo 'Starting server at http://localhost:$PORT ...';echo
+#
+# Run apache
+#
+echo "Starting server at http://localhost:$PORT ...";echo
 $HTTPD -f $CONF -DNO_DETACH -DFOREGROUND
