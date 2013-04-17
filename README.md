@@ -8,7 +8,7 @@ Open index.html and replace the string `'YOUR_SERVICE_ID'` with the id of a serv
 ## Running
 
 WebRTC javascript APIs do not work when a site is served from a `file://` url, 
-so even when developing locally, you _must_ serve your html from web server. Here's how:
+so even when developing locally, you _must_ serve your html from a web server. Here's how:
 
 ### Mac
 

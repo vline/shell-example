@@ -3,13 +3,50 @@
 #
 # Default config values
 #
-HTTPD=$(which httpd)
-if [ "x$HTTP" = "x" ]; then
+HTTPD=$(which httpd 2>/dev/null || which apache2 2>/dev/null)
+if [ "x$HTTPD" = "x" ]; then
   HTTPD=/usr/sbin/httpd
 fi
 
-MODULE_DIR=libexec/apache2
+TYPES_CONFIG=
 PORT=4567
+
+#
+# Attempt to find the modules dir
+#
+MODULE_DIR=libexec/apache2
+if [ `uname` = "Linux" ]; then
+  TYPES_CONFIG="TypesConfig \"/etc/mime.types\""
+  MODULE_DIR=/usr/lib/apache2/modules
+  if [ ! -d $MODULE_DIR ]; then
+    MODULE_DIR=/usr/lib/httpd/modules
+  fi
+  if [ ! -d $MODULE_DIR ]; then
+    MODULE_DIR=/usr/lib64/httpd/modules
+  fi
+fi
+
+DIR_MODULE="LoadModule dir_module $MODULE_DIR/mod_dir.so"
+LOG_CONFIG_MODULE="LoadModule log_config_module $MODULE_DIR/mod_log_config.so"
+MIME_MODULE="LoadModule mime_module $MODULE_DIR/mod_mime.so"
+
+#
+# Check existing modules and don't load the built-in modules
+#
+if [ `uname` = "Linux" ]; then
+  if [ ! -f "$MODULE_DIR/mod_dir.so" ]; then
+    DIR_MODULE=""
+  fi
+
+  if [ ! -f "$MODULE_DIR/mod_log_config.so" ]; then
+    LOG_CONFIG_MODULE=""
+  fi
+  
+  if [ ! -f "$MODULE_DIR/mod_mime.so" ]; then
+    MIME_MODULE=""
+  fi
+fi
+
 
 #
 # Print usage
@@ -45,7 +82,13 @@ while getopts ":e:p:m:h" opt; do
 done
 
 if [ ! -x "$HTTPD" ]; then
-  echo "Could not find Apache. Do you have it installed?" >&2
+  if [ `uname` = "Linux" ]; then
+    echo "If you are running Ubuntu or Debian, install Apache with: sudo apt-get update && sudo apt-get install apache2" >&2
+    echo "If you are running RedHat or CentOS, install Apache with: sudo yum install httpd" >&2
+  else
+    echo "Could not find Apache. Do you have it installed?" >&2
+  fi
+  echo "After installing Apache, please re-run this script." >&2
   exit 2
 fi
 
@@ -75,9 +118,11 @@ PidFile "$DIR/server/httpd.pid"
 LockFile "$DIR/server/accept.lock"
 ErrorLog |/bin/cat
 
-LoadModule dir_module $MODULE_DIR/mod_dir.so
-LoadModule log_config_module $MODULE_DIR/mod_log_config.so
-LoadModule mime_module $MODULE_DIR/mod_mime.so
+$TYPES_CONFIG
+
+$DIR_MODULE
+$LOG_CONFIG_MODULE
+$MIME_MODULE
 
 <Directory "$ROOT">
   Options Indexes

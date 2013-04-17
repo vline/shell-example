@@ -27,7 +27,7 @@
 }
 .terminal .terminal-output div div, .terminal .prompt {
     display: block;
-    line-height: 14px;
+    line-height: 16px;
     height: auto;
 }
 .terminal .prompt {
@@ -35,11 +35,11 @@
 }
 
 .terminal {
-    font-family: FreeMono, monospace;
+    font-family: Courier, monospace;
     color: #aaa;
     background-color: #000;
-    font-size: 12px;
-    line-height: 14px;
+    font-size: 14px;
+    line-height: 16px;
 }
 .terminal-output > div {
     padding-top: 3px;
@@ -70,7 +70,7 @@
     color: #000;
 }
 .terminal .terminal-output div.error, .terminal .terminal-output div.error div {
-    color: red;
+    color: #E21B1B;
 }
 .tilda {
     position: fixed;

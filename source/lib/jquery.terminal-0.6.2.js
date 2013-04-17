@@ -2641,7 +2641,7 @@
                 },
                 error: function(message) {
                     //echo red message
-                    return self.echo('[[;#f00;]' + escape_brackets(message) + ']');
+                    return self.echo('[[;#E21B1B;]' + escape_brackets(message) + ']');
                 },
                 scroll: function(amount) {
                     var pos;

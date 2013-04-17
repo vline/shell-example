@@ -69,7 +69,7 @@ function vlineShell(serviceId, elem) {
 
   function stopMediaCmd(opt_userId) {
     if (opt_userId) {
-      return $session.stopMedia(userId);
+      return $session.stopMedia(opt_userId);
     } else {
       $client.stopMediaSessions();
     }
