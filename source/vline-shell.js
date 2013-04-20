@@ -18,8 +18,12 @@
 
 function vlineShell(serviceId, elem) {
   var $client, $session;
+  var self = this;
 
   $client = vline.Client.create(serviceId);
+
+  this.calls_ = [];
+  this.term_ = undefined;
 
   // if we have a saved session, use it
   if ($client.isLoggedIn()) {
@@ -36,7 +40,7 @@ function vlineShell(serviceId, elem) {
       return;
     }
     // use service's configured identity provider if none is provided
-    var providerId = opt_identityProviderId || serviceId
+    var providerId = opt_identityProviderId || serviceId;
     return $client.login(providerId).
         done(function(session) {
           $session = session;
@@ -63,8 +67,7 @@ function vlineShell(serviceId, elem) {
   }
 
   function startMediaCmd(userId) {
-    return $session.startMedia(userId).
-        done(addMediaSession_);
+    return $session.startMedia(userId);
   }
 
   function stopMediaCmd(opt_userId) {
@@ -96,10 +99,79 @@ function vlineShell(serviceId, elem) {
   }
 
   //
+  // CALL MANAGEMENT
+  //
+  // constructor of two-party call controller
+  function Call(term, mediaSession) {
+    this.mediaSession_ = mediaSession;
+    this.term_ = term;
+
+    mediaSession.
+        on('enterState:pending', onEnterPending, this).
+        on('enterState:incoming', onEnterIncoming, this).
+        on('exitState:incoming', onExitIncoming, this).
+        on('enterState:outgoing', onEnterOutgoing, this).
+        on('enterState:connecting', onEnterConnecting, this).
+        on('enterState:active', onEnterActive, this).
+        on('enterState:closed', onEnterClosed, this);
+
+    function onEnterPending() {
+      echoMessage(this.term_, "Click 'Allow' to start call ^^^", '#FFF');
+    }
+    function onEnterIncoming() {
+      echoMessage(this.term_, 'Incoming call from ' + mediaSession.getDisplayName(), '#FFF');
+      this.showAcceptPrompt(mediaSession);
+    }
+    function onExitIncoming() {
+      this.hideAcceptPrompt();
+    }
+    function onEnterOutgoing() {
+      echoMessage(this.term_, 'Calling ' + mediaSession.getDisplayName() + '...', '#FFF');
+    }
+    function onEnterConnecting() {
+      echoMessage(this.term_, '[Call CONNECTING]');
+    }
+    function onEnterActive() {
+      echoMessage(this.term_, '[Call STARTED]');
+    }
+    function onEnterClosed() {
+      echoMessage(this.term_, '[Call ENDED]');
+    }
+  }
+
+  // end the call
+  Call.prototype.end = function() {
+    this.mediaSession_.stop();
+  };
+
+  Call.prototype.showAcceptPrompt = function(mediaSession) {
+    var term = this.term_;
+    term.push(function(command) {
+      if (command.match(/y|yes|^$/i)) {
+        mediaSession.start();
+        echoMessage(term, '[Call ACCEPTED]');
+      } else if (command.match(/n|no/i)) {
+        mediaSession.stop();
+        echoMessage(term, '[Call REJECTED]');
+      }
+    }, {
+      prompt: '[[;#FFF;]Accept? (YES/no):] '
+    });
+  };
+
+  Call.prototype.hideAcceptPrompt = function() {
+    this.term_.pop();
+  };
+
+  //
   // TERMINAL CALLBACKS
   //
   function onInit(term) {
-    $client.on('recv:im', onIm, term);
+    self.term_ = term;
+    $client.
+        on('recv:im', onIm, self).
+        on('add:mediaSession', onAddMediaSession, self).
+        on('remove:mediaSession', onRemoveMediaSession, self);
   }
 
   //
@@ -109,10 +181,20 @@ function vlineShell(serviceId, elem) {
     var msg = event.message,
         sender = msg.getSender();
     // format message in the style of the unix write command
-    this.echo('\n[[;#FFF;]Message from ' + sender.getDisplayName() + ' at ' +
+    this.term_.echo('\n[[;#FFF;]Message from ' + sender.getDisplayName() + ' at ' +
         new Date(msg.getCreationTime()).toLocaleTimeString() + ' ...]' +
         '\n[[;#0F0;]'+  msg.getBody(false) + ']' +
         '\n[[;#FFF;]EOF]');
+  }
+
+  function onAddMediaSession(event) {
+    var mediaSession = event.target;
+    addMediaSession_(mediaSession);
+  }
+
+  function onRemoveMediaSession(event) {
+    var mediaSession = event.target;
+    removeMediaSession_(mediaSession);
   }
 
   //
@@ -138,6 +220,33 @@ function vlineShell(serviceId, elem) {
     mediaSession.on('mediaSession:removeLocalStream mediaSession:removeRemoteStream', function(event) {
       $('#' + event.stream.getId()).remove();
     });
+
+    // The Call object tracks the lifecycle of the mediaSession
+    this.calls_.push(new Call(this.term_, mediaSession));
+  }
+
+  function removeMediaSession_(mediaSession) {
+    // Clean up call list when call ends
+    this.calls_.splice(this.calls_.indexOf(mediaSession), 1);
+  }
+
+  function echoMessage(term, msg, color, eof) {
+    if (color) {
+      color = '[;' + color + ';]';
+    } else {
+      color = '';
+    }
+
+    var echoString = color + msg;
+    if (color) {
+      echoString = '[' + echoString + ']';
+    }
+
+    term.echo(echoString);
+
+    if (eof) {
+      term.echo('[[;#FFF;]EOF]');
+    }
   }
 
   function echoProfile_(term, person) {
@@ -267,7 +376,7 @@ function vlineShell(serviceId, elem) {
       cb: loginCmd
       ,args: [0,1]
       ,usage: '[identityProvider]'
-      ,help: 'Create a new login session using specified identityProvider.'
+      ,help: 'Create a new login session using specified identityProvider. Defaults to configured serviceId.'
     }
     ,logout: {
       cb: logoutCmd
@@ -286,17 +395,19 @@ function vlineShell(serviceId, elem) {
       ,args: [2]
       ,login: true
       ,usage: 'userId message'
-      ,help: 'Send instant message.'
+      ,help: 'Send instant message. Quote the message if it has spaces in it.'
     }
     ,'start-media': {
       cb: startMediaCmd
       ,args: [1]
       ,usage: 'userId'
+      ,help: 'Start a video call with the specified user.'
     }
     ,'stop-media': {
       cb: stopMediaCmd
       ,args: [0,1]
-      ,usage: 'userId'
+      ,usage: '[userId]'
+      ,help: 'Stop a video call. If no userId is specified, stop all calls.'
     }
   };
 

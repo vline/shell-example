@@ -637,6 +637,9 @@
         self.append('<span class="prompt"></span><span></span>' +
                     '<span class="cursor">&nbsp;</span><span></span>');
         var clip = $('<textarea/>').addClass('clipboard').appendTo(self);
+        $('body').bind('paste', function() {
+          paste();
+        });
         if (options.width) {
             self.width(options.width);
         }
@@ -907,7 +910,7 @@
         function paste() {
             clip.focus();
             //wait until Browser insert text to textarea
-            self.oneTime(1, function() {
+            self.oneTime(100, function() {
                 self.insert(clip.val());
                 clip.blur().val('');
             });
