@@ -20,7 +20,7 @@ function vlineShell(serviceId, elem) {
   var $client, $session;
   var self = this;
 
-  $client = vline.Client.create(serviceId);
+  $client = vline.Client.create({serviceId: serviceId});
 
   this.calls_ = [];
   this.term_ = undefined;
