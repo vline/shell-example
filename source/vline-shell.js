@@ -45,6 +45,9 @@ function vlineShell(serviceId, elem) {
         done(function(session) {
           $session = session;
           this.echo(formatLoginMessage_());
+        }, this).
+        fail(function(err) {
+          this.error('Unable to log in. Did you set your service ID?');
         }, this);
   }
 
