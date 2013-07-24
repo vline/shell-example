@@ -16,11 +16,20 @@
  * limitations under the License.
  * ========================================================== */
 
-function vlineShell(serviceId, elem) {
+function vlineShell(serviceId, elem, enableUI) {
   var $client, $session;
   var self = this;
 
-  $client = vline.Client.create({serviceId: serviceId});
+  // https://vline.com/developer/docs/vline.js/vline.Options
+  var options = { serviceId: serviceId };
+
+  // https://vline.com/developer/docs/ui_widgets
+  if (enableUI) {
+    options.ui = true;                      // enable the vLine Widget UI
+    options.uiVideoPanel = 'video-wrapper'; // Specify div for the videopanel widget
+  }
+
+  $client = vline.Client.create(options);
 
   this.calls_ = [];
   this.term_ = undefined;
@@ -171,10 +180,16 @@ function vlineShell(serviceId, elem) {
   //
   function onInit(term) {
     self.term_ = term;
-    $client.
-        on('recv:im', onIm, self).
-        on('add:mediaSession', onAddMediaSession, self).
-        on('remove:mediaSession', onRemoveMediaSession, self);
+    $client.on('recv:im', onIm, self);
+
+    // If you're using the vLine UI widgets you don't need to handle the
+    // MediaSession events (but you can if you want to add custom functionality).
+    if (!enableUI) {
+      $client.
+          on('add:mediaSession', onAddMediaSession, self).
+          on('remove:mediaSession', onRemoveMediaSession, self);
+    }
+
   }
 
   //
