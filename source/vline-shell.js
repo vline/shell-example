@@ -180,7 +180,15 @@ function vlineShell(serviceId, elem, enableUI) {
   //
   function onInit(term) {
     self.term_ = term;
-    $client.on('recv:im', onIm, self);
+
+    if ($client.isConnected()) {
+      echoMessage(term, formatConnectionMessage_());
+    }
+
+    $client.
+        on('recv:im', onIm, self).
+        on('change:connectionState', onChangeConnectionState, self); // Try disabling/enabling your network
+                                                                     // connection to see this handler in action
 
     // If you're using the vLine UI widgets you don't need to handle the
     // MediaSession events (but you can if you want to add custom functionality).
@@ -189,7 +197,6 @@ function vlineShell(serviceId, elem, enableUI) {
           on('add:mediaSession', onAddMediaSession, self).
           on('remove:mediaSession', onRemoveMediaSession, self);
     }
-
   }
 
   //
@@ -213,6 +220,10 @@ function vlineShell(serviceId, elem, enableUI) {
   function onRemoveMediaSession(event) {
     var mediaSession = event.target;
     removeMediaSession_(mediaSession);
+  }
+
+  function onChangeConnectionState(event) {
+    echoMessage(this.term_, formatConnectionMessage_());
   }
 
   //
@@ -305,6 +316,10 @@ function vlineShell(serviceId, elem, enableUI) {
     var person = $session.getLocalPerson();
     return 'Logged in as ' + person.getDisplayName() +
         ' (' + (person.getUsername() || person.getId()) + ')';
+  }
+
+  function formatConnectionMessage_() {
+    return 'vLine Cloud connection state: ' + $client.getConnectionState();
   }
 
   function formatCompletionMessage_(cmd, startTime, msg) {
