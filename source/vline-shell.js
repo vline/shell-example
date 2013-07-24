@@ -217,6 +217,16 @@ function vlineShell(serviceId, elem) {
       var elem = $(event.stream.createMediaElement());
       elem.prop('id', stream.getId());
 
+      // You can style the HTML element that was created however you want.
+      // This example shows how to flip the remote video upside-down.
+      // Uncomment to see it in action
+      /*
+      if (stream.isRemote()) {
+        elem.css('transform', 'scaleY(-1)');         // Firefox
+        elem.css('-webkit-transform', 'scaleY(-1)'); // Chrome
+      }
+      */
+
       $('#video-wrapper').append(elem);
     });
     // add event handler for remove stream events
